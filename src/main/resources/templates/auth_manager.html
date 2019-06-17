@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" th:href="@{/css/themes/default/easyui.css}">
+    <link rel="stylesheet" th:href="@{/css/themes/icon.css}">
+    <script th:src="@{/js/jquery.min.js}"></script>
+    <script th:src="@{/js/jquery.easyui.min.js}"></script>
+    <script th:src="@{/js/easyui-lang-zh_CN.js}"></script>
+</head>
+<body>
+    <table id="dg" class="easyui-treegrid"></table>
+
+    <div id="toolbar">
+        <div>
+            <a  class="easyui-linkbutton" data-options="iconCls:'icon-add'" onclick="openAddDialog()">添加</a>
+            <a  class="easyui-linkbutton" data-options="iconCls:'icon-edit'" onclick="openModifyDialog()">修改</a>
+            <a  class="easyui-linkbutton" data-options="iconCls:'icon-remove'" onclick="deleteAuth()">删除</a>
+        </div>
+    </div>
+
+    <div id="dlg" class="easyui-dialog"  style="width:500px;height:300px;"
+         data-options="iconCls:'icon-save',closed:true, resizable:true,modal:true,buttons:'#but'">
+       <form id="ff">
+           <input type="hidden" name="parentId" id="pid" >
+           <input type="hidden" name="authId" id="authId" >
+           <table>
+               <tr>
+                   <td>菜单名称：</td>
+                   <td>
+                       <input type="text" name="authName">
+                   </td>
+                   <td>菜单样式：</td>
+                   <td>
+                       <input type="text" name="iconCls">
+                   </td>
+               </tr>
+               <tr>
+                   <td>链接路径</td>
+                   <td>
+                       <input type="text" name="authPath">
+                   </td>
+                   <td>权限标识</td>
+                   <td>
+                       <input type="text" name="perms">
+                   </td>
+               </tr>
+               <tr>
+                   <td valign="top">备注</td>
+                   <td colspan="3">
+                       <textarea cols="50" rows="10" name="authDescription"></textarea>
+                   </td>
+               </tr>
+           </table>
+       </form>
+    </div>
+
+    <div id="but">
+        <a class="easyui-linkbutton" data-options="iconCls:'icon-ok'" onclick="operate()">保存</a>
+        <a class="easyui-linkbutton" data-options="iconCls:'icon-cancel'" onclick="closeDlg()">关闭</a>
+    </div>
+
+
+    <script th:inline="none">
+        $(function () {
+            $('#dg').treegrid({
+                url:'/auth/loadGridTree',
+                idField:'authId',
+                treeField:'authName',
+                fitColumns:true,
+                toolbar:'#toolbar',
+                onLoadSuccess:function(){
+                    $('#dg').treegrid("expandAll")
+                },
+                columns:[[
+                    {field:'parentId',hidden:true},
+                    {title:'菜单编号',field:'authId',width:30,align:'center'},
+                    {field:'authName',title:'菜单名称',width:100,align:'center'},
+                    {field:'iconCls',title:'图标',width:100,align:'center',formatter:iconFormatter},
+                    {field:'authPath',title:'链接地址',width:100,align:'center'},
+                    {field:'authDescription',title:'备注',width:100,align:'center'}
+                ]]
+            });
+
+        })
+
+        function  iconFormatter(value,rowdata,index) {
+            return "<span class='"+rowdata.iconCls+"'>&nbsp;&nbsp;&nbsp;&nbsp;</span>"
+        }
+
+        var url;
+        function openAddDialog() {
+            var rows=$("#dg").treegrid("getSelections");
+            if (rows.length!=1){
+                $.messager.alert("系统提示","请选择一条数据");
+                return;
+            }
+            $("#dlg").dialog("open").dialog("setTitle", "添加菜单");
+            $("#pid").val(rows[0].authId);
+            url="/auth/addAuth";
+        }
+
+        function openModifyDialog() {
+            var rows=$("#dg").treegrid("getSelections");
+            if (rows.length!=1){
+                $.messager.alert("系统提示","请选择一条数据");
+                return;
+            }
+            $("#dlg").dialog("open").dialog("setTitle", "修改菜单");
+
+            $("#ff").form("load",rows[0]);
+            url="/auth/updateAuth";
+        }
+
+        function closeDlg() {
+            $("#dlg").dialog("close");
+            $("#ff").form("clear");
+        }
+
+        function operate() {
+            $("#ff").form("submit",{
+                url:url,
+                success:function (result) {
+                    result =eval("("+result+")");
+                    if (result.code==0){
+                        $.messager.alert("系统提示","操作成功");
+                        $("#dlg").dialog("close");
+                        $("#ff").form("clear");
+                        $("#dg").treegrid("reload");
+                    }else {
+                        $.messager.alert("系统提示",result.message);
+                    }
+                }
+            })
+        }
+        
+        function deleteAuth() {
+            var rows=$("#dg").treegrid("getSelections");
+            if (rows.length!=1){
+                $.messager.alert("系统提示","请选择一条数据");
+                return;
+            }
+           /* if (rows[0].children.size()>0){
+                $.messager.alert("系统提示","还要子节点，不能删除");
+                return;
+            }*/
+
+
+
+           $.messager.confirm("系统提示","确定删除码？",function (c) {
+               if (c){
+                   var param={
+                       authId:rows[0].authId,
+                       parentId:rows[0].parentId
+                   };
+                   $.getJSON("/auth/deleteAuth",param,function (result) {
+                       if (result.code==0){
+                           $.messager.alert("系统提示","操作成功");
+                           $("#dg").treegrid("reload");
+                       }else {
+                           $.messager.alert("系统提示",result.message);
+                       }
+                   })
+               }
+           })
+
+        }
+
+    </script>
+</body>
+</html>

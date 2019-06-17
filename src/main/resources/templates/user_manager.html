@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" th:href="@{/css/themes/default/easyui.css}">
+    <link rel="stylesheet" th:href="@{/css/themes/icon.css}">
+    <script th:src="@{/js/jquery.min.js}"></script>
+    <script th:src="@{/js/jquery.easyui.min.js}"></script>
+    <script th:src="@{/js/easyui-lang-zh_CN.js}"></script>
+</head>
+<body>
+    <table id="dg"></table>
+
+    <div id="toolbar">
+        <div>
+            <a shiro:hasPermission="sys:user:save"  class="easyui-linkbutton" data-options="iconCls:'icon-add'" onclick="openAddDialog()">添加</a>
+            <a shiro:hasPermission="sys:user:update" class="easyui-linkbutton" data-options="iconCls:'icon-edit'" onclick="openModifyDialog()">修改</a>
+            <a shiro:hasPermission="sys:user:delete" class="easyui-linkbutton" data-options="iconCls:'icon-remove'" onclick="deleteUser()">删除</a>
+        </div>
+        <div>
+            用户名：<input type="text" name="userName" id="userName">
+            用户角色:<input type="text" id="roleId" class="easyui-combobox"
+                        data-options="valueField:'roleId',textField:'roleName',url:'/role/list'" />
+            <a  class="easyui-linkbutton" data-options="iconCls:'icon-search'" onclick="searchUser()"></a>
+        </div>
+    </div>
+
+    <div id="dlg" class="easyui-dialog"  style="width:600px;height:400px;"
+         data-options="iconCls:'icon-save',closed:true, resizable:true,modal:true,buttons:'#but'">
+       <form id="ff">
+           <input type="hidden" name="userId" id="uid" >
+           <table>
+                <tr>
+                    <td>用户 名：</td>
+                    <td>
+                        <input class="easyui-validatebox" type="text" name="userName" data-options="required:true" />
+                    </td>
+                    <td>用户密码：</td>
+                    <td>
+                        <input type="password" name="password">
+                    </td>
+                </tr>
+
+               <tr>
+                   <td>角色：</td>
+                   <td>
+                       <input type="text" id="role"    name="role.roleId" >
+                   </td>
+                   <td></td>
+                   <td></td>
+               </tr>
+               <tr>
+                   <td valign="top">备注：</td>
+                   <td colspan="3">
+                       <textarea name="userDescription" cols="40" rows="10"></textarea>
+                   </td>
+               </tr>
+           </table>
+       </form>
+    </div>
+
+    <div id="but">
+        <a class="easyui-linkbutton" data-options="iconCls:'icon-ok'" onclick="operate()">保存</a>
+        <a class="easyui-linkbutton" data-options="iconCls:'icon-cancel'" onclick="closeDlg()">关闭</a>
+    </div>
+
+    <script th:inline="none">
+        $(function () {
+            $('#dg').datagrid({
+                url:'/user/list',
+                title:"用户管理",
+                pagination:true,
+                rownumbers:true,
+                striped:true,
+                fitColumns:true,
+                toolbar:'#toolbar',
+                pageNumber:1,
+                pageSize:5,
+                pageList:[5,10,15],
+                columns:[[
+                    {checkbox:true},
+                    {field:'userId',title:'编号',width:20,align:'center'},
+                    {field:'userName',title:'用户名',width:100,align:'center'},
+                    {field:'roleId',title:'用户角色',width:100,align:'center',formatter: function(value,row,index){
+                           return row.role.roleName;
+                        }},
+                    {field:'userDescription',title:'备注',width:200,align:'center'}
+                ]]
+            });
+        })
+        
+        
+        function searchUser() {
+            var params={};
+            params.userName=$("#userName").val();
+            params.roleId=$("#roleId").combobox("getValue");
+            $("#dg").datagrid('reload',params);
+        }
+        var url;
+        function  openAddDialog() {
+            $("#dlg").dialog("open").dialog("setTitle",'添加用户');
+            $("#role").combobox({
+                url:'/role/list',
+                valueField:'roleId',
+                textField:'roleName'
+            })
+            url = '/user/add';
+        }
+        
+        function operate() {
+            $("#ff").form("submit",{
+                url:url,
+                success:function (result) {
+                    result= eval("("+result+")");
+
+                    if(result.code == 0){
+                        $.messager.alert('系统提示','操作成功');
+                        closeDlg();
+                        $("#ff").form("clear");
+                        $("#dg").datagrid("reload");
+                    }else{
+                        $.messager.alert('系统提示',result.message);
+                    }
+                }
+            })
+        }
+        
+        function closeDlg() {
+            $("#dlg").dialog("close");
+            $("#ff").form("clear");
+        }
+
+
+        function deleteUser() {
+               var rows=$("#dg").datagrid("getSelections");
+                if (rows.length==0){
+                    $.messager.alert("系统提示",'请选择一条数据');
+                    return;
+                }
+                $.messager.confirm("系统提示","确认删除",function (r) {
+                    if (r){
+                        var arr=new Array();
+                        for (var i in rows){
+                            console.log(rows[i].userId);
+                            arr.push(rows[i].userId);
+                        }
+                        $.get("/user/delete","userIds="+arr,function (data) {
+
+                            alert(data.code);
+                            if(data.code==0){
+                                $.messager.alert("系统提示",data.message);
+                                $("#dg").datagrid("reload");
+                            }else {
+                                $.messager.alert("系统提示",data.message);
+                            }
+                        },"json")
+                    }
+                })
+        }
+
+        function openModifyDialog() {
+            var rows=$("#dg").datagrid("getSelections");
+            if (rows.length!=1){
+                $.messager.alert("系统提示",'请选择一条数据');
+                return;
+            }
+            $("#dlg").dialog("open").dialog("setTitle",'修改用户');
+            console.log(rows);
+            $("#ff").form("load",rows[0]);
+            $("#role").combobox({
+                url:'/role/list',
+                valueField:'roleId',
+                textField:'roleName'
+            });
+            $("[name=password]").attr("disabled","disabled");
+            //alert(rows[0].role.roleId);
+            $("#role").combobox("select",rows[0].role.roleId);
+            $("#uid").val(rows[0].userId);
+            url = '/user/update';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.am.rbacsystem.dao.AuthMapper">
+
+  <select id="findPermsByUserName" parameterType="string" resultType="string">
+    select perms from  t_auth where find_in_set(auth_id,(
+      select auth_ids from t_role where role_id=(select role_id from t_user where user_name=#{value})
+      ))and perms is not null
+  </select>
+
+  <select id="findAuthByNamePerms" parameterType="com.am.rbacsystem.pojo.Auth" resultMap="BaseResultMap">
+      select * from t_auth where (auth_name=#{authName} and perms is null)
+      or (perms is not null and parent_id=#{parentId} and auth_name=#{authName})
+  </select>
+
+  <select id="findAll" resultMap="BaseResultMap">
+    select * from  t_auth
+  </select>
+
+  <select id="findAllAuth" resultMap="BaseResultMap">
+    select * from  t_auth where  parent_id=#{parentId}
+  </select>
+
+  <select id="findAuthByParentId" resultMap="BaseResultMap">
+    select * from  t_auth where find_in_set(auth_id,(
+      select  auth_ids from  t_role where role_id=(select role_id from t_user where user_id=#{userId})
+      )) and parent_id=#{parentId}
+
+  </select>
+
+
+  <resultMap id="BaseResultMap" type="com.am.rbacsystem.pojo.Auth">
+    <id column="auth_id" jdbcType="INTEGER" property="authId" />
+    <result column="auth_name" jdbcType="VARCHAR" property="authName" />
+    <result column="auth_path" jdbcType="VARCHAR" property="authPath" />
+    <result column="parent_id" jdbcType="INTEGER" property="parentId" />
+    <result column="auth_description" jdbcType="VARCHAR" property="authDescription" />
+    <result column="state" jdbcType="VARCHAR" property="state" />
+    <result column="icon_cls" jdbcType="VARCHAR" property="iconCls" />
+    <result column="perms" jdbcType="VARCHAR" property="perms" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    auth_id, auth_name, auth_path, parent_id, auth_description, state, icon_cls, perms
+  </sql>
+  <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+    select 
+    <include refid="Base_Column_List" />
+    from t_auth
+    where auth_id = #{authId,jdbcType=INTEGER}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+    delete from t_auth
+    where auth_id = #{authId,jdbcType=INTEGER}
+  </delete>
+  <insert id="insert" parameterType="com.am.rbacsystem.pojo.Auth">
+    insert into t_auth (auth_id, auth_name, auth_path, 
+      parent_id, auth_description, state, 
+      icon_cls, perms)
+    values (#{authId,jdbcType=INTEGER}, #{authName,jdbcType=VARCHAR}, #{authPath,jdbcType=VARCHAR}, 
+      #{parentId,jdbcType=INTEGER}, #{authDescription,jdbcType=VARCHAR}, #{state,jdbcType=VARCHAR}, 
+      #{iconCls,jdbcType=VARCHAR}, #{perms,jdbcType=VARCHAR})
+  </insert>
+  <insert id="insertSelective" parameterType="com.am.rbacsystem.pojo.Auth">
+    insert into t_auth
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="authId != null">
+        auth_id,
+      </if>
+      <if test="authName != null">
+        auth_name,
+      </if>
+      <if test="authPath != null">
+        auth_path,
+      </if>
+      <if test="parentId != null">
+        parent_id,
+      </if>
+      <if test="authDescription != null">
+        auth_description,
+      </if>
+      <if test="state != null">
+        state,
+      </if>
+      <if test="iconCls != null">
+        icon_cls,
+      </if>
+      <if test="perms != null and ''!=perms">
+        perms,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="authId != null">
+        #{authId,jdbcType=INTEGER},
+      </if>
+      <if test="authName != null">
+        #{authName,jdbcType=VARCHAR},
+      </if>
+      <if test="authPath != null">
+        #{authPath,jdbcType=VARCHAR},
+      </if>
+      <if test="parentId != null">
+        #{parentId,jdbcType=INTEGER},
+      </if>
+      <if test="authDescription != null">
+        #{authDescription,jdbcType=VARCHAR},
+      </if>
+      <if test="state != null">
+        #{state,jdbcType=VARCHAR},
+      </if>
+      <if test="iconCls != null">
+        #{iconCls,jdbcType=VARCHAR},
+      </if>
+      <if test="perms != null and ''!=perms">
+        #{perms,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.am.rbacsystem.pojo.Auth">
+    update t_auth
+    <set>
+      <if test="authName != null and ''!=authName">
+        auth_name = #{authName,jdbcType=VARCHAR},
+      </if>
+      <if test="authPath != null and ''!=authPath">
+        auth_path = #{authPath,jdbcType=VARCHAR},
+      </if>
+      <if test="parentId != null ">
+        parent_id = #{parentId,jdbcType=INTEGER},
+      </if>
+      <if test="authDescription != null and ''!= authDescription">
+        auth_description = #{authDescription,jdbcType=VARCHAR},
+      </if>
+      <if test="state != null and ''!= state">
+        state = #{state,jdbcType=VARCHAR},
+      </if>
+      <if test="iconCls != null and ''!=iconCls">
+        icon_cls = #{iconCls,jdbcType=VARCHAR},
+      </if>
+      <if test="perms != null and ''!=perms">
+        perms = #{perms,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where auth_id = #{authId,jdbcType=INTEGER}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.am.rbacsystem.pojo.Auth">
+    update t_auth
+    set auth_name = #{authName,jdbcType=VARCHAR},
+      auth_path = #{authPath,jdbcType=VARCHAR},
+      parent_id = #{parentId,jdbcType=INTEGER},
+      auth_description = #{authDescription,jdbcType=VARCHAR},
+      state = #{state,jdbcType=VARCHAR},
+      icon_cls = #{iconCls,jdbcType=VARCHAR},
+      perms = #{perms,jdbcType=VARCHAR}
+    where auth_id = #{authId,jdbcType=INTEGER}
+  </update>
+</mapper>
